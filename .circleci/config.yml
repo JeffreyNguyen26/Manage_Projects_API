@@ -17,7 +17,12 @@ jobs:
             $password = ConvertTo-SecureString $json.psPassword -AsPlainText -Force
             $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
             Connect-AzureRmAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
-            Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "ad"
+            try {
+                Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "ad"
+            } catch {
+                echo "not found resource"
+                Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "NococidAPI"
+            }
 workflows:
   version: 2.1
   workflow:
