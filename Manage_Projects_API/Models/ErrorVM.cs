@@ -15,4 +15,11 @@ namespace Manage_Projects_API.Models
         public string InnerErrorMessage { get; set; }
         public string StackTrace { get; set; }
     }
+
+    public class ServerExceptionVM
+    {
+        public string Message { get; set; }
+        public int TraceId { get; set; }
+        public string Side { get; set; }
+    }
 }
