@@ -8,10 +8,10 @@ jobs:
     #- checkout
     - run:
         shell: powershell.exe -ExecutionPolicy Bypass
-        name: "Test"
+        name: "Deploy"
         command: |
-            $deployment = $(curl -X GET "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/deployment?tool_name=Azure&project_id=5c8dd234-79e9-4043-575c-08d906487b7c" -H  "accept:application/json")
-            echo $deployment
+            curl -X GET "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/deployment?tool_name=Azure&project_id=5c8dd234-79e9-4043-575c-08d906487b7c" -H  "Accept:application/json"
+            echo "wad"
 workflows:
   version: 2.1
   workflow:
