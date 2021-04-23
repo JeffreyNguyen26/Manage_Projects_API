@@ -17,7 +17,7 @@ jobs:
             $password = ConvertTo-SecureString $json.psPassword -AsPlainText -Force
             $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
             Connect-AzureRmAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
-            Get-AzureRmWebApp
+            Get-AzureRmWebApp -ResourceGroupName "$json.deployment.resourceGroupName" -Name "ad"
 workflows:
   version: 2.1
   workflow:
