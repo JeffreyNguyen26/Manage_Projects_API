@@ -1,7 +1,6 @@
 ﻿using Manage_Projects_API.Data.Static;
 using Manage_Projects_API.Models;
 using Manage_Projects_API.Services;
-using Manage_Projects_API.Services.Nococid;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
