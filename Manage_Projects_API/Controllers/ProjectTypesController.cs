@@ -16,16 +16,14 @@ namespace Manage_Projects_API.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public class ProjectsController : ControllerBase
+    public class ProjectTypesController : ControllerBase
     {
-        private readonly IJwtAuthService _jwtAuth;
-        private readonly IProjectService _project;
+        private readonly IProjectTypeService _projectType;
         private readonly IErrorHandlerService _errorHandler;
 
-        public ProjectsController(IJwtAuthService jwtAuth, IProjectService project, IErrorHandlerService errorHandler)
+        public ProjectTypesController(IProjectTypeService projectType, IErrorHandlerService errorHandler)
         {
-            _jwtAuth = jwtAuth;
-            _project = project;
+            _projectType = projectType;
             _errorHandler = errorHandler;
         }
 
@@ -34,8 +32,7 @@ namespace Manage_Projects_API.Controllers
         {
             try
             {
-                JwtClaimM jwt_claim = _jwtAuth.GetClaims(Request);
-                return Ok(_project.GetAll(jwt_claim.UserId));
+                return Ok(_projectType.GetAll());
             }
             catch (Exception e)
             {
@@ -43,13 +40,12 @@ namespace Manage_Projects_API.Controllers
             }
         }
 
-        [HttpPost("create")]
-        public IActionResult CreateProject([FromBody] ProjectCreateM model)
+        [HttpGet("{project_type_id}")]
+        public IActionResult GetDetail([FromRoute] Guid project_type_id)
         {
             try
             {
-                JwtClaimM jwt_claim = _jwtAuth.GetClaims(Request);
-                return Created("", _project.Add(jwt_claim.AdminUserId, jwt_claim.UserId, model));
+                return Ok(_projectType.GetDetail(project_type_id));
             }
             catch (Exception e)
             {

@@ -49,6 +49,7 @@ namespace Manage_Projects_API
             services.AddSingleton<IJwtAuthService, JwtAuthService>();
 
             services.AddScoped<IProjectService, ProjectService>();
+            services.AddScoped<IProjectTypeService, ProjectTypeService>();
             services.AddScoped<IUserService, UserService>();
 
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear(); // => remove default claims
