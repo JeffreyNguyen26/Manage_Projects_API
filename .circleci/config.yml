@@ -23,9 +23,9 @@ jobs:
                 $app = New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
             }
             echo $app
-            dotnet publish ./Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained false
+            dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained false
             Compress-Archive -Path ./app-publish/* -DestinationPath Draft.zip
-            Install-Module -Name Az.Websites -Force -RequiredVersion 2.6.0
+            Install-Module -Name Az.Websites -Force -RequiredVersion 2.6.0 -AllowClobber
             Publish-AzWebApp -WebApp $app -ArchivePath Draft.zip -AsJob
 workflows:
   version: 2.1
