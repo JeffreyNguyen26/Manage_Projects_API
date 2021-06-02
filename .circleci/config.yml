@@ -24,7 +24,7 @@ jobs:
               }
               Get-AzureRmWebAppPublishingProfile -OutputFile "C:\Users\circleci\project\publishprofile.xml" -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI"
               Stop-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI"
-              dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained false
+              dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained true
               Compress-Archive -Path ./app-publish/* -DestinationPath draft.zip
               & "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" @('-verb:sync', '-source:package=C:\Users\circleci\project\draft.zip', '-dest:contentPath=d:\home\site\wwwroot\,publishSettings=C:\Users\circleci\project\publishprofile.xml')
 workflows:
