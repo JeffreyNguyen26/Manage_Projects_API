@@ -55,11 +55,19 @@ namespace Manage_Projects_API.Controllers
 
         [HttpPost("logout")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public IActionResult Logout()
+        public IActionResult Logout(string jwt)
         {
             try
             {
-                JwtClaimM jwt_claim = _jwtAuth.GetClaims(Request);
+                JwtClaimM jwt_claim;
+                if (string.IsNullOrEmpty(jwt))
+                {
+                    jwt_claim = _jwtAuth.GetClaims(Request);
+                } else
+                {
+                    jwt_claim = _jwtAuth.GetClaims(jwt);
+                }
+                
                 _jwtAuth.RemoveAudience(jwt_claim.AdminUserId, jwt_claim.UserId);
                 return Ok("Logout success");
             }

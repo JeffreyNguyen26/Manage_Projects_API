@@ -30,7 +30,7 @@ namespace Manage_Projects_API.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetAll()
+        public IActionResult GetAll(string jwt)
         {
             try
             {
@@ -44,7 +44,7 @@ namespace Manage_Projects_API.Controllers
         }
 
         [HttpPost("create")]
-        public IActionResult CreateProject([FromBody] ProjectCreateM model)
+        public IActionResult CreateProject([FromBody] ProjectCreateM model, string jwt)
         {
             try
             {

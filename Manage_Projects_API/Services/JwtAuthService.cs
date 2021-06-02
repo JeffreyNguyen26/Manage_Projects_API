@@ -17,7 +17,8 @@ namespace Manage_Projects_API.Services
     {
         string GenerateJwt(Guid admin_user_id, Guid user_id, string application_role);
         JwtClaimM GetClaims(HttpRequest request);
-        void RemoveAudience(Guid admin_user_id, Guid user_id);
+        JwtClaimM GetClaims(string jwt);
+        bool RemoveAudience(Guid admin_user_id, Guid user_id);
     }
 
     public class JwtAuthService : ServiceBase, IJwtAuthService
@@ -84,13 +85,39 @@ namespace Manage_Projects_API.Services
             }
         }
 
-        public void RemoveAudience(Guid admin_user_id, Guid user_id)
+        public JwtClaimM GetClaims(string jwt)
+        {
+            try
+            {
+                string token = jwt;
+                if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    token = token.Substring("Bearer ".Length).Trim();
+                }
+
+                IEnumerable<Claim> claims = (new JwtSecurityTokenHandler().ReadToken(token) as JwtSecurityToken).Claims;
+                return new JwtClaimM
+                {
+                    AdminUserId = new Guid(claims.FirstOrDefault(c => c.Type.Equals(JwtClaim.Admin_User_Id)).Value),
+                    UserId = new Guid(claims.FirstOrDefault(c => c.Type.Equals(JwtClaim.User_Id)).Value),
+                    ApplicationRole = claims.FirstOrDefault(c => c.Type.Equals(JwtClaim.Application_Role)).Value,
+                };
+            }
+            catch (Exception e)
+            {
+                throw e is RequestException ? e : _errorHandler.WriteLog("An error occurred while get claim values!",
+                    e, DateTime.Now, "Server", "Service_JwtAuth_GetClaims");
+            }
+        }
+
+        public bool RemoveAudience(Guid admin_user_id, Guid user_id)
         {
             try
             {
                 string head = admin_user_id.ToString() + "&" + user_id.ToString() + "&";
                 string audience = JwtAuth.ValidAudiences.FirstOrDefault(a => a.StartsWith(head));
                 JwtAuth.ValidAudiences.Remove(audience);
+                return true;
             }
             catch (Exception e)
             {

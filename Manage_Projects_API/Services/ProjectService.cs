@@ -17,17 +17,8 @@ namespace Manage_Projects_API.Services
 
     public class ProjectService : ServiceBase, IProjectService
     {
-        private readonly IContext<Project> _project;
-        private readonly IContext<Permission> _permission;
-        private readonly IContext<ProjectType> _projectType;
-        private readonly IContext<User> _user;
-
-        public ProjectService(IContext<User> user, IContext<ProjectType> projectType, IContext<Permission> permission, IContext<Project> project, IErrorHandlerService errorHandler) : base(errorHandler)
+        public ProjectService(IErrorHandlerService errorHandler) : base(errorHandler)
         {
-            _user = user;
-            _projectType = projectType;
-            _permission = permission;
-            _project = project;
         }
 
         public ProjectM Add(Guid admin_user_id, Guid user_id, ProjectCreateM model)
@@ -36,32 +27,48 @@ namespace Manage_Projects_API.Services
             {
                 if (!admin_user_id.Equals(Guid.Empty)) throw Forbidden();
                 if (model.Name.Contains("/")) throw BadRequest("Project name can not contain slash(/)!");
-                ProjectType project_type = _projectType.GetOne(p => p.Id.Equals(model.ProjectTypeId));
+                ProjectType project_type = Utils.GuidUtils.projectTypes.Where(p => p.Id.Equals(model.ProjectTypeId)).FirstOrDefault();
                 if (project_type == null) throw NotFound(model.ProjectTypeId, "project type id");
-                if (_project.Any(p => p.Name.Equals(model.Name) && p.Permissions.Any(p => p.UserId.Equals(user_id) && p.RoleId.Equals(RoleID.Admin)))) throw BadRequest("The project name is already existed!");
 
-                Project project = _project.Add(new Project
+                var project = Utils.GuidUtils.projects.Where(p => p.Name.Equals(model.Name)).FirstOrDefault();
+                if (project != null)
+                {
+                    if (Utils.GuidUtils.permissions.Any(p => p.ProjectId.Equals(project.Id) && p.UserId.Equals(user_id) && p.RoleId.Equals(RoleID.Admin)))
+                    {
+                        throw BadRequest("The project name is already existed!");
+                    }
+                }
+
+                project = new Project
                 {
                     ProjectTypeId = model.ProjectTypeId,
                     IsDelete = false,
                     Name = model.Name,
                     StartDate = model.StartDate,
                     CreatedDate = DateTime.Now,
-                    EndDate = model.EndDate
-                });
-                _permission.Add(new Permission
+                    EndDate = model.EndDate,
+                    IsSetting = false
+                };
+                Utils.GuidUtils.projects.Add(project);
+
+                Utils.GuidUtils.permissions.Add(new Permission
                 {
                     UserId = user_id,
                     ProjectId = project.Id,
                     RoleId = RoleID.Admin
                 });
-                _permission.Add(new Permission
+                Utils.GuidUtils.permissions.Add(new Permission
                 {
                     UserId = user_id,
                     ProjectId = project.Id,
                     RoleId = RoleID.Project_Manager
                 });
-                SaveChanges();
+                Utils.GuidUtils.permissions.Add(new Permission
+                {
+                    UserId = user_id,
+                    ProjectId = project.Id,
+                    RoleId = RoleID.Technical_Manager
+                });
 
                 return new ProjectM
                 {
@@ -75,7 +82,7 @@ namespace Manage_Projects_API.Services
                         Id = project_type.Id,
                         Name = project_type.Name
                     },
-                    Owner = _user.Where(u => u.Id.Equals(user_id)).Select(u => new UserM
+                    Owner = Utils.GuidUtils.users.Where(u => u.Id.Equals(user_id)).Select(u => new UserM
                     {
                         Id = u.Id,
                         Username = u.Username
@@ -93,25 +100,34 @@ namespace Manage_Projects_API.Services
         {
             try
             {
-                var result = _permission.Where(p => p.Project.Permissions.Any(p => p.UserId.Equals(user_id)) && p.RoleId.Equals(RoleID.Admin))
-                    .Select(p => new ProjectLastSprintM
+                var result = new List<ProjectLastSprintM>();
+
+                var project_ids = Utils.GuidUtils.permissions.Where(p => p.UserId.Equals(user_id)).Select(p => p.ProjectId).ToArray();
+                var projects = Utils.GuidUtils.projects.Where(p => project_ids.Any(id => id.Equals(p.Id))).Select(p => p);
+                foreach (var project in projects)
+                {
+                    var project_type = Utils.GuidUtils.projectTypes.Where(pt => pt.Id.Equals(project.ProjectTypeId)).FirstOrDefault();
+                    user_id = Utils.GuidUtils.permissions.Where(p => p.RoleId.Equals(RoleID.Admin) && p.ProjectId.Equals(project.Id)).Select(p => p.UserId.Value).FirstOrDefault();
+                    var user = Utils.GuidUtils.users.Where(u => u.Id.Equals(user_id)).FirstOrDefault();
+                    result.Add(new ProjectLastSprintM
                     {
-                        CreatedDate = p.Project.CreatedDate,
-                        EndDate = p.Project.EndDate,
-                        Id = p.Project.Id,
-                        Name = p.Project.Name,
+                        CreatedDate = project.CreatedDate,
+                        Id = project.Id,
+                        EndDate = project.EndDate,
+                        Name = project.Name,
+                        StartDate = project.StartDate,
                         ProjectType = new ProjectTypeM
                         {
-                            Id = p.Project.ProjectType.Id,
-                            Name = p.Project.ProjectType.Name
+                            Id = project.ProjectTypeId.Value,
+                            Name = project_type.Name
                         },
-                        StartDate = p.Project.StartDate,
                         Owner = new UserM
                         {
-                            Id = p.User.Id,
-                            Username = p.User.Username
+                            Id = user.Id,
+                            Username = user.Username
                         }
-                    }).ToList();
+                    });
+                }
                 return result;
             }
             catch (Exception e)
@@ -119,11 +135,6 @@ namespace Manage_Projects_API.Services
                 throw e is RequestException ? e : _errorHandler.WriteLog("An error occurred while get all project!",
                     e, DateTime.Now, "Server", "Service_Project_GetAll");
             }
-        }
-
-        private int SaveChanges()
-        {
-            return _project.SaveChanges();
         }
     }
 }

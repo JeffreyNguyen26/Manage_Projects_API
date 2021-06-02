@@ -16,28 +16,19 @@ namespace Manage_Projects_API.Services
 
     public class ProjectTypeService : ServiceBase, IProjectTypeService
     {
-        private readonly IContext<ProjectType> _projectType;
-
-        public ProjectTypeService(IContext<ProjectType> projectType, IErrorHandlerService errorHandler) : base(errorHandler)
+        public ProjectTypeService(IErrorHandlerService errorHandler) : base(errorHandler)
         {
-            _projectType = projectType;
         }
 
         public IList<ProjectTypeM> GetAll()
         {
             try
             {
-                IList<ProjectTypeM> result = new List<ProjectTypeM>();
-                IList<ProjectType> project_types = _projectType.GetAll();
-                foreach (var project_type in project_types)
+                return Utils.GuidUtils.projectTypes.Select(pt => new ProjectTypeM
                 {
-                    result.Add(new ProjectTypeM
-                    {
-                        Id = project_type.Id,
-                        Name = project_type.Name
-                    });
-                }
-                return result;
+                    Id = pt.Id,
+                    Name = pt.Name
+                }).ToList();
             }
             catch (Exception e)
             {
@@ -50,7 +41,7 @@ namespace Manage_Projects_API.Services
         {
             try
             {
-                ProjectType project_type = _projectType.GetOne(id);
+                ProjectType project_type = Utils.GuidUtils.projectTypes.Where(pt => pt.Id.Equals(id)).FirstOrDefault();
                 return new ProjectTypeM
                 {
                     Id = project_type.Id,

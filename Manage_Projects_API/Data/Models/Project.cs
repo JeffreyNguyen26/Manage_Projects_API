@@ -14,6 +14,7 @@ namespace Manage_Projects_API.Data.Models
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public bool IsDelete { get; set; }
+        public bool IsSetting { get; set; }
 
         public Guid? ProjectTypeId { get; set; }
 
