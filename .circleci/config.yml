@@ -10,7 +10,6 @@ jobs:
           shell: powershell.exe -ExecutionPolicy Bypass
           name: "Deploy"
           command: |
-              Install-Module -Name Az.Websites -Force -RequiredVersion 2.6.0 -AllowClobber
               Install-Module -Name Az.Accounts -Force -RequiredVersion 2.3.0 -AllowClobber
               remove-item alias:\curl
               $deployment = $(curl -X GET "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/deployment?tool_name=Azure&project_id=33ab2d2d-ab0e-44e8-e5fa-08d922e39241" --header "Accept:application/json")
@@ -29,6 +28,7 @@ jobs:
               echo $app
               dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained false
               Compress-Archive -Path ./app-publish/* -DestinationPath Draft.zip
+              Install-Module -Name Az.Websites -Force -RequiredVersion 2.6.0 -AllowClobber
               Publish-AzWebApp -WebApp $app -ArchivePath Draft.zip -AsJob
 workflows:
   version: 2.1
