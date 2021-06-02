@@ -18,15 +18,18 @@ jobs:
             $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
             Connect-AzureRmAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
             try {
-                $app = Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -ErrorAction Stop
-                echo 'success'
+                Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -ErrorAction Stop
             } catch {
-                $app = New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
-                echo 'fail'
+                New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
             }
+            $publishProfilePath = Join-Path -Path $ENV:Temp -ChildPath 'publishprofile.xml'
+            Get-AzureRmWebAppSlotPublishingProfile -OutputFile $publishProfilePath -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI"
+            Stop-AzureRmWebAppSlot -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI"
             dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained false
-            Compress-Archive -Path ./app-publish/*.* -DestinationPath publish_draft.zip
-            Publish-AzWebApp -WebApp $app -ArchivePath publish_draft.zip -Force
+            Invoke-WebRequest -Uri https://download.microsoft.com/download/0/1/D/01DC28EA-638C-4A22-A57B-4CEF97755C6C/WebDeploy_amd64_en-US.msi -OutFile ./MSDeploy.exe
+            $source = "-source:contentPath=./app-publish"
+            $dest = "-dest:contentPath=d:\home\site\wwwroot\,publishSettings=$publishProfilePath"
+            $ "MSDeploy.exe" @('-verb:sync', $source, $dest)
 workflows:
   version: 2.1
   workflow:
