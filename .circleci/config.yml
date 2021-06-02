@@ -10,7 +10,7 @@ jobs:
         shell: powershell.exe -ExecutionPolicy Bypass
         name: "Deploy"
         command: |
-            Install-Module -Name Az.Websites -RequiredVersion 2.6.0
+            Install-Module -Name Az.Websites -Force -RequiredVersion 2.6.0
 workflows:
   version: 2.1
   workflow:
