@@ -10,26 +10,7 @@ jobs:
         shell: powershell.exe -ExecutionPolicy Bypass
         name: "Deploy"
         command: |
-            remove-item alias:\curl
-            $deployment = $(curl -X GET "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/deployment?tool_name=Azure&project_id=33ab2d2d-ab0e-44e8-e5fa-08d922e39241" --header "Accept:application/json")
-            $json = ConvertFrom-Json $deployment
-            $username = 'http://' + $json.psUsername
-            $password = ConvertTo-SecureString $json.psPassword -AsPlainText -Force
-            $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
-            Connect-AzureRmAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
-            try {
-                Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -ErrorAction Stop
-            } catch {
-                New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
-            }
-            $publishProfilePath = Join-Path -Path $ENV:Temp -ChildPath 'publishprofile.xml'
-            Get-AzureRmWebAppPublishingProfile -OutputFile $publishProfilePath -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI"
-            Stop-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI"
-            dotnet publish ./Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained false
-            Invoke-WebRequest -Uri https://download.microsoft.com/download/0/1/D/01DC28EA-638C-4A22-A57B-4CEF97755C6C/WebDeploy_amd64_en-US.msi -OutFile ./MSDeploy.exe
-            $source = "-source:contentPath=./app-publish"
-            $dest = "-dest:contentPath=d:\home\site\wwwroot\,publishSettings=$publishProfilePath"
-            & './MSDeploy.exe' @('-verb:sync', $source, $dest)
+            Install-Module -Name Az.Websites -RequiredVersion 2.6.0
 workflows:
   version: 2.1
   workflow:
