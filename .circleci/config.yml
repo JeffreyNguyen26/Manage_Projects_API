@@ -10,20 +10,21 @@ jobs:
           shell: powershell.exe -ExecutionPolicy Bypass
           name: "Deploy"
           command: |
-              Install-Module -Name Az.Accounts -Force -RequiredVersion 2.3.0 -AllowClobber
               remove-item alias:\curl
+              Install-Module -Name Az.Accounts -Force -RequiredVersion 2.3.0 -AllowClobber
               $deployment = $(curl -X GET "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/deployment?tool_name=Azure&project_id=33ab2d2d-ab0e-44e8-e5fa-08d922e39241" --header "Accept:application/json")
+              echo $deployment
               $json = ConvertFrom-Json $deployment
               $username = 'http://' + $json.psUsername
               $password = ConvertTo-SecureString $json.psPassword -AsPlainText -Force
               $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
-              Connect-AzAccount -Credential $creds -Tenant $json.deployment.tenant
+              Connect-AzAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
               Install-Module -Name Az.Websites -Force -RequiredVersion 2.6.0 -AllowClobber
               try {
-                  $app = Get-AzWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -ErrorAction Stop
+                  Get-AzWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -ErrorAction Stop
                   echo 'succ'
               } catch {
-                  $app = New-AzWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
+                  New-AzWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
                   echo 'createed'
               }
               echo $app
