@@ -22,6 +22,7 @@ jobs:
               } catch {
                   New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
               }
+              echo "dd"
               Get-AzureRmWebAppPublishingProfile -OutputFile "C:\Users\circleci\project\publishprofile.xml" -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI"
               Stop-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI"
               dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --self-contained false
