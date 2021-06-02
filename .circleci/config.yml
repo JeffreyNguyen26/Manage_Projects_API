@@ -5,28 +5,31 @@ jobs:
       image: windows-server-2019-vs2019:stable
     resource_class: windows.medium
     steps:
-    #- checkout
-    - run:
-        shell: powershell.exe -ExecutionPolicy Bypass
-        name: "Deploy"
-        command: |
-            remove-item alias:\curl
-            $deployment = $(curl -X GET "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/deployment?tool_name=Azure&project_id=33ab2d2d-ab0e-44e8-e5fa-08d922e39241" --header "Accept:application/json")
-            $json = ConvertFrom-Json $deployment
-            $username = 'http://' + $json.psUsername
-            $password = ConvertTo-SecureString $json.psPassword -AsPlainText -Force
-            $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
-            Connect-AzureRmAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
-            try {
-                $app = Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -ErrorAction Stop
-            } catch {
-                $app = New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
-            }
-            echo $app
-            dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained false
-            Compress-Archive -Path ./app-publish/* -DestinationPath Draft.zip
-            Install-Module -Name Az.Websites -Force -RequiredVersion 2.6.0 -AllowClobber
-            Publish-AzWebApp -WebApp $app -ArchivePath Draft.zip -AsJob
+      - checkout
+      - run:
+          shell: powershell.exe -ExecutionPolicy Bypass
+          name: "Deploy"
+          command: |
+              Install-Module -Name Az.Websites -Force -RequiredVersion 2.6.0 -AllowClobber
+              Install-Module -Name Az.Accounts -Force -RequiredVersion 2.3.0 -AllowClobber
+              remove-item alias:\curl
+              $deployment = $(curl -X GET "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/deployment?tool_name=Azure&project_id=33ab2d2d-ab0e-44e8-e5fa-08d922e39241" --header "Accept:application/json")
+              $json = ConvertFrom-Json $deployment
+              $username = 'http://' + $json.psUsername
+              $password = ConvertTo-SecureString $json.psPassword -AsPlainText -Force
+              $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
+              Connect-AzAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
+              try {
+                  $app = Get-AzWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -ErrorAction Stop
+                  echo 'succ'
+              } catch {
+                  $app = New-AzWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
+                  echo 'createed'
+              }
+              echo $app
+              dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained false
+              Compress-Archive -Path ./app-publish/* -DestinationPath Draft.zip
+              Publish-AzWebApp -WebApp $app -ArchivePath Draft.zip -AsJob
 workflows:
   version: 2.1
   workflow:
