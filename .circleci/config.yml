@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   deploy:
     orbs:
-  win: circleci/windows@2.2.0
+      win: circleci/windows@2.2.0
     resource_class: windows.medium
     steps:
       - checkout
