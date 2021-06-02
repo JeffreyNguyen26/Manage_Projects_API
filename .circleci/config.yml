@@ -1,16 +1,34 @@
 version: 2.1
-orbs:
-  win: circleci/windows@2.2.0
 jobs:
   deploy:
-    executor: win/default
+    machine:
+      image: windows-server-2019-vs2019:stable
+    resource_class: windows.medium
     steps:
       - checkout
       - run:
           shell: powershell.exe -ExecutionPolicy Bypass
           name: "Deploy"
           command: |
-              Get-InstalledModule
+              remove-item alias:\curl
+              $deployment = $(curl -X GET "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/deployment?tool_name=Azure&project_id=33ab2d2d-ab0e-44e8-e5fa-08d922e39241" --header "Accept:application/json")
+              $json = ConvertFrom-Json $deployment
+              $username = 'http://' + $json.psUsername
+              $password = ConvertTo-SecureString $json.psPassword -AsPlainText -Force
+              $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
+              Connect-AzureRmAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
+              try {
+                  Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -ErrorAction Stop
+              } catch {
+                  New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
+              }
+              $publishProfilePath = Join-Path -Path $ENV:Temp -ChildPath 'publishprofile.xml'
+              Get-AzureRmWebAppPublishingProfile -OutputFile $publishProfilePath -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI"
+              Stop-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI"
+              dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained false
+              $source = "-source:contentPath=./app-publish"
+              $dest = "-dest:contentPath=d:\home\site\wwwroot\,publishSettings=$publishProfilePath"
+              & "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" @('-verb:sync', $source, $dest)
 workflows:
   version: 2.1
   workflow:
