@@ -18,6 +18,7 @@ jobs:
               $password = ConvertTo-SecureString $json.psPassword -AsPlainText -Force
               $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
               Connect-AzAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
+              Install-Module -Name Az.Websites -Force -RequiredVersion 2.6.0 -AllowClobber
               try {
                   $app = Get-AzWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -ErrorAction Stop
                   echo 'succ'
@@ -28,7 +29,6 @@ jobs:
               echo $app
               dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained false
               Compress-Archive -Path ./app-publish/* -DestinationPath Draft.zip
-              Install-Module -Name Az.Websites -Force -RequiredVersion 2.6.0 -AllowClobber
               Publish-AzWebApp -WebApp $app -ArchivePath Draft.zip -AsJob
 workflows:
   version: 2.1
