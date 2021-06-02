@@ -18,12 +18,15 @@ jobs:
             $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
             Connect-AzureRmAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
             try {
-                Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -ErrorAction Stop
+                $app = Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -ErrorAction Stop
                 echo 'success'
             } catch {
-                New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
+                $app = New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-NococidAPI" -AppServicePlan $json.deployment.appSerivcePlan
                 echo 'fail'
             }
+            dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --runtime win-x64 --self-contained false
+            Compress-Archive -Path ./app-publish/*.* -DestinationPath publish_draft.zip
+            Publish-AzWebApp -WebApp $app -ArchivePath publish_draft.zip -Force
 workflows:
   version: 2.1
   workflow:
