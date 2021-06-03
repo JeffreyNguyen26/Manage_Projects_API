@@ -4,7 +4,7 @@ commands:
     steps:
       - run:
           name: "Trigger start workflow to Nococid"
-          command: curl -X POST "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/start-workflow?gh_username=${CIRCLE_PROJECT_USERNAME}&circle_workflow_id=${CIRCLE_WORKFLOW_ID}" --header "Content-Type:application/json" --data '{"ProjectId":"cc75e0d2-dfea-479e-e5f9-08d922e39241","TotalJob":1,"StagesAndNames":[{"StageCode":2,"StageName":"build-1"}]}'
+          command: curl -X POST "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/start-workflow?gh_username=${CIRCLE_PROJECT_USERNAME}&circle_workflow_id=${CIRCLE_WORKFLOW_ID}" --header "Content-Type:application/json" --data '{"ProjectId":"cc75e0d2-dfea-479e-e5f9-08d922e39241","TotalJob":1,"StagesAndNames":[{"StageCode":5,"StageName":"deploy-1"}]}'
   nococid-start-job-command:
     steps:
       - run:
@@ -17,7 +17,7 @@ commands:
           name: "Trigger end job to Nococid"
           command: curl -X POST "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/end-job?circle_workflow_id=${CIRCLE_WORKFLOW_ID}&circle_job_num=${CIRCLE_BUILD_NUM}&stage=${CIRCLE_STAGE}&gh_username=${CIRCLE_PROJECT_USERNAME}&gh_repository=${CIRCLE_PROJECT_REPONAME}&branch=${CIRCLE_PROJECT_REPONAME}" --header "Content-Type:application/json" --data ''
 jobs:
-  build-1:
+  deploy-1:
     machine:
       image: windows-server-2019-vs2019:stable
     resource_class: windows.medium
@@ -25,21 +25,28 @@ jobs:
     - nococid-start-job-command
     - checkout
     - run:
-        name: "Build Project"
-        command: dotnet build ./Manage_Projects_API/Manage_Projects_API.csproj -o app-build
+        name: "Publish Project"
+        command: dotnet publish Manage_Projects_API -c Release -o app-publish --self-contained false
     - run:
         shell: powershell.exe -ExecutionPolicy Bypass
-        name: "New Folder"
+        name: "Deploy to Azure"
         command: |
-            New-Item -Path . -Name "compress" -ItemType "directory"
-    - run:
-        shell: powershell.exe -ExecutionPolicy Bypass
-        name: "Compress"
-        command: |
-            Compress-Archive -Path ./app-build/* -DestinationPath ./compress/build-package.zip
-    - store_artifacts:
-        path: ./compress
-        destination: BuildPackage
+            remove-item alias:\curl
+            $deployment = $(curl -X GET "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/deployment?tool_name=Azure&project_id=cc75e0d2-dfea-479e-e5f9-08d922e39241" --header "Accept:application/json")
+            $json = ConvertFrom-Json $deployment
+            $username = 'http://' + $json.psUsername
+            $password = ConvertTo-SecureString $json.psPassword -AsPlainText -Force
+            $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
+            Connect-AzureRmAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
+            try {
+                Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-TestProject1" -ErrorAction Stop
+            } catch {
+                New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-TestProject1" -AppServicePlan $json.deployment.appSerivcePlan
+            }
+            Get-AzureRmWebAppPublishingProfile -OutputFile "C:\Users\circleci\project\publishprofile.xml\" -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-TestProject1"
+            Stop-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-TestProject1"
+            & "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" @('-verb:sync', '-source:contentPath=C:\Users\circleci\project\app-publish', '-dest:contentPath=d:\home\site\wwwroot\,publishSettings=C:\Users\circleci\project\publishprofile.xml')
+            Start-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-TestProject1"
     - nococid-end-job-command
   nococid-start-workflow:
     machine:
@@ -51,7 +58,7 @@ workflows:
   version: 2.1
   workflow:
     jobs:
-      - build-1:
+      - deploy-1:
           requires:
             - nococid-start-workflow
       - nococid-start-workflow
