@@ -28,12 +28,13 @@ jobs:
         name: "Build Project"
         command: dotnet build ./Manage_Projects_API/Manage_Projects_API.csproj -o app-build
     - run:
+        shell: powershell.exe -ExecutionPolicy Bypass
         name: "Compress"
         command: |
-            powershell Compress-Archive -Path ./app-build/* -DestinationPath build-package
+            Compress-Archive -Path ./app-build/* -DestinationPath build-package
     - store_artifacts:
-        path: build-package
-        destination: Buildt
+        path: ./build-package
+        destination: BuildPackage
     - nococid-end-job-command
   nococid-start-workflow:
     machine:
