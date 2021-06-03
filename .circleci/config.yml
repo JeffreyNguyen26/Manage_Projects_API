@@ -1,4 +1,4 @@
-2.1
+version: 2.1
 commands:
   nococid-start-workflow-command:
     steps:
@@ -39,7 +39,7 @@ jobs:
     steps:
     - nococid-start-workflow-command
 workflows:
-  2.1
+  version: 2.1
   workflow:
     jobs:
       - build-1:
