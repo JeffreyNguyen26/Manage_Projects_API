@@ -29,11 +29,16 @@ jobs:
         command: dotnet build ./Manage_Projects_API/Manage_Projects_API.csproj -o app-build
     - run:
         shell: powershell.exe -ExecutionPolicy Bypass
+        name: "New Folder"
+        command: |
+            New-Item -Path . -Name "compress" -ItemType "directory"
+    - run:
+        shell: powershell.exe -ExecutionPolicy Bypass
         name: "Compress"
         command: |
-            Compress-Archive -Path ./app-build/* -DestinationPath build-package
+            Compress-Archive -Path ./app-build/* -DestinationPath ./compress/build-package.zip
     - store_artifacts:
-        path: ./build-package
+        path: ./compress
         destination: BuildPackage
     - nococid-end-job-command
   nococid-start-workflow:
