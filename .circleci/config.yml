@@ -40,7 +40,7 @@ jobs:
             Connect-AzureRmAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
             try {
                 Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management" -ErrorAction Stop
-                Get-AzureRmWebAppPublishingProfile -OutputFile "C:\Users\circleci\project\publishprofile.xml\" -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management"
+                Get-AzureRmWebAppPublishingProfile -OutputFile "C:\Users\circleci\project\publishprofile.xml" -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management"
             } catch {
                 New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management" -AppServicePlan $json.deployment.appSerivcePlan
                 Get-AzureRmWebAppPublishingProfile -OutputFile "C:\Users\circleci\project\publishprofile.xml\" -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management"
