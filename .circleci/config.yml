@@ -4,7 +4,7 @@ commands:
     steps:
       - run:
           name: "Trigger start workflow to Nococid"
-          command: curl -X POST "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/start-workflow?gh_username=${CIRCLE_PROJECT_USERNAME}&circle_workflow_id=${CIRCLE_WORKFLOW_ID}" --header "Content-Type:application/json" --data '{"ProjectId":"cc75e0d2-dfea-479e-e5f9-08d922e39241","TotalJob":3,"StagesAndNames":[{"StageCode":2,"StageName":"build-1"},{"StageCode":3,"StageName":"test-2"},{"StageCode":5,"StageName":"deploy-3"}]}'
+          command: curl -X POST "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/start-workflow?gh_username=${CIRCLE_PROJECT_USERNAME}&circle_workflow_id=${CIRCLE_WORKFLOW_ID}" --header "Content-Type:application/json" --data '{"ProjectId":"cc75e0d2-dfea-479e-e5f9-08d922e39241","TotalJob":1,"StagesAndNames":[{"StageCode":2,"StageName":"build-1"}]}'
   nococid-start-job-command:
     steps:
       - run:
@@ -27,66 +27,13 @@ jobs:
     - run:
         name: "Build Project"
         command: dotnet build ./Manage_Projects_API/Manage_Projects_API.csproj -o app-build
-    - store_artifacts:
-        path: ./app-build
-        destination: BuiltFile
-    - nococid-end-job-command
-  test-2:
-    machine:
-      image: windows-server-2019-vs2019:stable
-    resource_class: windows.medium
-    steps:
-    - nococid-start-job-command
-    - checkout
     - run:
-        name: "Build Project"
-        command: dotnet build ./Manage_Projects_API_Test
-    - run:
-        name: "Test Project"
-        command: dotnet test ./Manage_Projects_API_Test --no-build --logger "trx"
-    - run:
-        shell: powershell.exe -ExecutionPolicy Bypass
-        name: "Parse Test Results"
-        when: always
+        name: "Compress"
         command: |
-            dotnet tool install -g trx2junit
-            trx2junit ./Manage_Projects_API_Test/TestResults/*.trx
-    - store_test_results:
-        path: ./Manage_Projects_API_Test/TestResults
+            powershell Compress-Archive -Path ./app-build/* -DestinationPath build-package
     - store_artifacts:
-        path: ./Manage_Projects_API_Test
-        destination: TestResultFile
-    - nococid-end-job-command
-  deploy-3:
-    machine:
-      image: windows-server-2019-vs2019:stable
-    resource_class: windows.medium
-    steps:
-    - nococid-start-job-command
-    - checkout
-    - run:
-        name: "Publish Project"
-        command: dotnet publish ./Manage_Projects_API/Manage_Projects_API.csproj -c Release -o app-publish --self-contained false
-    - run:
-        shell: powershell.exe -ExecutionPolicy Bypass
-        name: "Deploy to Azure"
-        command: |
-            remove-item alias:\curl
-            $deployment = $(curl -X GET "http://toan0701.ddns.net:9080/Nococid/api/Listeners/CircleCI/deployment?tool_name=Azure&project_id=cc75e0d2-dfea-479e-e5f9-08d922e39241" --header "Accept:application/json")
-            $json = ConvertFrom-Json $deployment
-            $username = 'http://' + $json.psUsername
-            $password = ConvertTo-SecureString $json.psPassword -AsPlainText -Force
-            $creds = New-Object System.Management.Automation.PSCredential -ArgumentList ($username, $password)
-            Connect-AzureRmAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
-            try {
-                Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-{project_name}" -ErrorAction Stop
-            } catch {
-                New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-{project_name}" -AppServicePlan $json.deployment.appSerivcePlan
-            }
-            Get-AzureRmWebAppPublishingProfile -OutputFile "C:\Users\circleci\project\publishprofile.xml\" -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-{project_name}"
-            Stop-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-{project_name}"
-            & "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" @('-verb:sync', '-source:contentPath=C:\Users\circleci\project\app-publish', '-dest:contentPath=d:\home\site\wwwroot\,publishSettings=C:\Users\circleci\project\publishprofile.xml')
-            Start-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-{project_name}"
+        path: build-package
+        destination: Buildt
     - nococid-end-job-command
   nococid-start-workflow:
     machine:
@@ -101,12 +48,4 @@ workflows:
       - build-1:
           requires:
             - nococid-start-workflow
-      - test-2:
-          requires:
-            - nococid-start-workflow
-            - build-1
-      - deploy-3:
-          requires:
-            - nococid-start-workflow
-            - test-2
       - nococid-start-workflow
