@@ -40,10 +40,10 @@ jobs:
             Connect-AzureRmAccount -Credential $creds -Tenant $json.deployment.tenant -ServicePrincipal
             try {
                 Get-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management" -ErrorAction Stop
-              Get-AzureRmWebAppPublishingProfile -OutputFile "C:\Users\circleci\project\publishprofile.xml\" -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management"
+                Get-AzureRmWebAppPublishingProfile -OutputFile "C:\Users\circleci\project\publishprofile.xml\" -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management"
             } catch {
                 New-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management" -AppServicePlan $json.deployment.appSerivcePlan
-              Get-AzureRmWebAppPublishingProfile -OutputFile "C:\Users\circleci\project\publishprofile.xml\" -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management"
+                Get-AzureRmWebAppPublishingProfile -OutputFile "C:\Users\circleci\project\publishprofile.xml\" -Format WebDeploy -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management"
             }
             Stop-AzureRmWebApp -ResourceGroupName $json.deployment.resourceGroupName -Name "Stagging-project-management"
             & "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" @('-verb:sync', '-source:contentPath=C:\Users\circleci\project\app-publish', '-dest:contentPath=d:\home\site\wwwroot\,publishSettings=C:\Users\circleci\project\publishprofile.xml')
